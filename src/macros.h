@@ -7,14 +7,14 @@ const char* sqlite_authorizer_string(int type);
 
 #define REQUIRE_ARGUMENTS(n)                                                   \
     if (info.Length() < (n)) {                                                 \
-        Napi::TypeError::New(env, "Expected " #n "arguments").ThrowAsJavaScriptException();
+        Napi::TypeError::New(env, "Expected " #n "arguments").ThrowAsJavaScriptException(); \
         return env.Null();                \
     }
 
 
 #define REQUIRE_ARGUMENT_EXTERNAL(i, var)                                      \
     if (info.Length() <= (i) || !info[i].IsExternal()) {                      \
-        Napi::TypeError::New(env, "Argument " #i " invalid").ThrowAsJavaScriptException();
+        Napi::TypeError::New(env, "Argument " #i " invalid").ThrowAsJavaScriptException(); \
         return env.Null();                 \
     }                                                                          \
     Napi::External var = info[i].As<Napi::External>();
@@ -22,7 +22,7 @@ const char* sqlite_authorizer_string(int type);
 
 #define REQUIRE_ARGUMENT_FUNCTION(i, var)                                      \
     if (info.Length() <= (i) || !info[i].IsFunction()) {                      \
-        Napi::TypeError::New(env, "Argument " #i " must be a function").ThrowAsJavaScriptException();
+        Napi::TypeError::New(env, "Argument " #i " must be a function").ThrowAsJavaScriptException(); \
         return env.Null();      \
     }                                                                          \
     Napi::Function var = info[i].As<Napi::Function>();
@@ -30,7 +30,7 @@ const char* sqlite_authorizer_string(int type);
 
 #define REQUIRE_ARGUMENT_STRING(i, var)                                        \
     if (info.Length() <= (i) || !info[i].IsString()) {                        \
-        Napi::TypeError::New(env, "Argument " #i " must be a string").ThrowAsJavaScriptException();
+        Napi::TypeError::New(env, "Argument " #i " must be a string").ThrowAsJavaScriptException(); \
         return env.Null();        \
     }                                                                          \
     std::string var = info[i].As<Napi::String>();
@@ -40,7 +40,7 @@ const char* sqlite_authorizer_string(int type);
     Napi::Function var;                                                       \
     if (info.Length() > i && !info[i].IsUndefined()) {                        \
         if (!info[i].IsFunction()) {                                          \
-            Napi::TypeError::New(env, "Argument " #i " must be a function").ThrowAsJavaScriptException();
+            Napi::TypeError::New(env, "Argument " #i " must be a function").ThrowAsJavaScriptException(); \
             return env.Null();  \
         }                                                                      \
         var = info[i].As<Napi::Function>();                                  \
@@ -56,7 +56,7 @@ const char* sqlite_authorizer_string(int type);
         var = info[i].As<Napi::Number>().Int32Value();                            \
     }                                                                          \
     else {                                                                     \
-        Napi::TypeError::New(env, "Argument " #i " must be an integer").ThrowAsJavaScriptException();
+        Napi::TypeError::New(env, "Argument " #i " must be an integer").ThrowAsJavaScriptException(); \
         return env.Null();      \
     }
 

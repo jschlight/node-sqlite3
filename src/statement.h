@@ -16,7 +16,6 @@
 #include <uv.h>
 
 using namespace Napi;
-using namespace Napi;
 
 namespace node_sqlite3 {
 
@@ -186,15 +185,17 @@ public:
         }
     };
 
-    Statement(Database* db_) : Napi::ObjectWrap<Statement>(),
-            db(db_),
-            _handle(NULL),
-            status(SQLITE_OK),
-            prepared(false),
-            locked(true),
-            finalized(false) {
+    void init(Database* db_) {
+        db = db_;
+        _handle = NULL;
+        status = SQLITE_OK;
+        prepared = false;
+        locked = true;
+        finalized = false;
         db->Ref();
     }
+
+    Statement(const Napi::CallbackInfo& info);
 
     ~Statement() {
         if (!finalized) Finalize();
@@ -207,7 +208,7 @@ public:
     WORK_DEFINITION(Each);
     WORK_DEFINITION(Reset);
 
-    static Napi::Value Finalize(const Napi::CallbackInfo& info);
+    Napi::Value Finalize(const Napi::CallbackInfo& info);
 
 protected:
     static void Work_BeginPrepare(Database::Baton* baton);
@@ -225,7 +226,7 @@ protected:
     bool Bind(const Parameters &parameters);
 
     static void GetRow(Row* row, sqlite3_stmt* stmt);
-    static Napi::Object RowToJS(Row* row);
+    static Napi::Value RowToJS(Napi::Env env, Row* row);
     void Schedule(Work_Callback callback, Baton* baton);
     void Process();
     void CleanQueue();

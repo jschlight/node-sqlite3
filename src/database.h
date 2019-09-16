@@ -5,6 +5,7 @@
 
 #include <string>
 #include <queue>
+#include <assert.h>
 
 #include <sqlite3.h>
 #include <napi.h>

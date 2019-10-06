@@ -49,6 +49,12 @@ inline bool OtherIsInt(Napi::Number source) {
     }                                                                          \
     std::string var = info[i].As<Napi::String>();
 
+#define REQUIRE_ARGUMENT_INTEGER(i, var)                                        \
+    if (info.Length() <= (i) || !info[i].IsNumber()) {                        \
+        Napi::TypeError::New(env, "Argument " #i " must be an integer").ThrowAsJavaScriptException(); \
+        return env.Null();        \
+    }                                                                          \
+    int var(info[i].As<Napi::Number>().Int32Value());
 
 #define OPTIONAL_ARGUMENT_FUNCTION(i, var)                                     \
     Napi::Function var;                                                        \
@@ -82,15 +88,6 @@ inline bool OtherIsInt(Napi::Number source) {
 #define DEFINE_CONSTANT_STRING(target, constant, name)                         \
     Napi::PropertyDescriptor::Value(#name, Napi::String::New(env, constant),   \
         static_cast<napi_property_attributes>(napi_enumerable | napi_configurable)),
-
-
-#define NODE_SET_GETTER(target, name, function)                                \
-    Napi::SetAccessor((target).InstanceTemplate(),                             \
-        Napi::Symbol::New(env, name), (function));
-
-#define GET_INTEGER(source, name, prop)                                        \
-    int name = Napi::To<int>((source,                                          \
-        Napi::Number::New(env).Get(property)));
 
 #define EXCEPTION(msg, errno, name)                                            \
     Napi::Value name = Napi::Error::New(env,                                   \
@@ -127,8 +124,8 @@ inline bool OtherIsInt(Napi::Number source) {
 #define WORK_DEFINITION(name)                                                  \
     Napi::Value name(const Napi::CallbackInfo& info);                          \
     static void Work_Begin##name(Baton* baton);                                \
-    static void Work_##name(uv_work_t* req);                                   \
-    static void Work_After##name(uv_work_t* req);
+    static void Work_##name(napi_env env, void* data);                         \
+    static void Work_After##name(napi_env env, napi_status status, void* data);
 
 #define STATEMENT_BEGIN(type)                                                  \
     assert(baton);                                                             \
@@ -138,13 +135,16 @@ inline bool OtherIsInt(Napi::Number source) {
     assert(baton->stmt->prepared);                                             \
     baton->stmt->locked = true;                                                \
     baton->stmt->db->pending++;                                                \
-    int status = uv_queue_work(uv_default_loop(),                              \
-        &baton->request,                                                       \
-        Work_##type, reinterpret_cast<uv_after_work_cb>(Work_After##type));    \
-    assert(status == 0);
+    Napi::Env env = baton->stmt->Env();                                        \
+    int status = napi_create_async_work(                                       \
+        env, NULL, Napi::String::New(env, "sqlite3.Statement."#type),          \
+        Work_##type, Work_After##type, baton, &baton->request                  \
+    );                                                                         \
+    assert(status == 0);                                                       \
+    napi_queue_async_work(env, baton->request);
 
 #define STATEMENT_INIT(type)                                                   \
-    type* baton = static_cast<type*>(req->data);                               \
+    type* baton = static_cast<type*>(data);                                    \
     Statement* stmt = baton->stmt;
 
 #define STATEMENT_END()                                                        \
@@ -154,6 +154,37 @@ inline bool OtherIsInt(Napi::Number source) {
     stmt->db->pending--;                                                       \
     stmt->Process();                                                           \
     stmt->db->Process();                                                       \
+    napi_delete_async_work(e, baton->request);                                 \
+    delete baton;
+
+#define BACKUP_BEGIN(type)                                                     \
+    assert(baton);                                                             \
+    assert(baton->backup);                                                     \
+    assert(!baton->backup->locked);                                            \
+    assert(!baton->backup->finished);                                          \
+    assert(baton->backup->inited);                                             \
+    baton->backup->locked = true;                                              \
+    baton->backup->db->pending++;                                              \
+    Napi::Env env = baton->backup->Env();                                      \
+    int status = napi_create_async_work(                                       \
+        env, NULL, Napi::String::New(env, "sqlite3.Backup."#type),             \
+        Work_##type, Work_After##type, baton, &baton->request                  \
+    );                                                                         \
+    assert(status == 0);                                                       \
+    napi_queue_async_work(env, baton->request);
+
+#define BACKUP_INIT(type)                                                      \
+    type* baton = static_cast<type*>(data);                                    \
+    Backup* backup = baton->backup;
+
+#define BACKUP_END()                                                           \
+    assert(backup->locked);                                                    \
+    assert(backup->db->pending);                                               \
+    backup->locked = false;                                                    \
+    backup->db->pending--;                                                     \
+    backup->Process();                                                         \
+    backup->db->Process();                                                     \
+    napi_delete_async_work(e, baton->request);                                 \
     delete baton;
 
 #define DELETE_FIELD(field)                                                    \

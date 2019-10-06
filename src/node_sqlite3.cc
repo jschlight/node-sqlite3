@@ -7,6 +7,7 @@
 #include "macros.h"
 #include "database.h"
 #include "statement.h"
+#include "backup.h"
 
 using namespace node_sqlite3;
 
@@ -17,6 +18,7 @@ Napi::Object RegisterModule(Napi::Env env, Napi::Object exports) {
 
     Database::Init(env, exports);
     Statement::Init(env, exports);
+    Backup::Init(env, exports);
 
     exports.DefineProperties({
         DEFINE_CONSTANT_INTEGER(exports, SQLITE_OPEN_READONLY, OPEN_READONLY)

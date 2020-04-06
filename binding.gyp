@@ -37,7 +37,7 @@
         },
         {
             "dependencies": [
-              "<!(node -p 'require(\"node-addon-api\").gyp')",
+              "<!(node -p \"require('node-addon-api').gyp\")",
               "deps/sqlite3.gyp:sqlite3"
             ]
         }
@@ -47,7 +47,8 @@
         "src/database.cc",
         "src/node_sqlite3.cc",
         "src/statement.cc"
-      ]
+      ],
+      "defines": [ "NAPI_DISABLE_CPP_EXCEPTIONS=1" ]
     },
     {
       "target_name": "action_after_build",
@@ -62,13 +63,15 @@
       },
       "type": "none",
       "dependencies": [
-        "<!(node -p 'require(\"node-addon-api\").gyp')", "<(module_name)" ],
+        "<!(node -p \"require('node-addon-api').gyp\")", 
+        "<(module_name)" ],
       "copies": [
           {
             "files": [ "<(PRODUCT_DIR)/<(module_name).node" ],
             "destination": "<(module_path)"
           }
-      ]
+      ],
+      "defines": [ "NAPI_DISABLE_CPP_EXCEPTIONS=1" ]
     }
   ]
 }
